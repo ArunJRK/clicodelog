@@ -430,6 +430,18 @@
             animation: spin 1s linear infinite;
         }
 
+        .control-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .control-btn:disabled:hover {
+            background: var(--bg-secondary);
+            border-color: var(--border-color);
+            transform: none;
+        }
+
         .sync-status {
             font-size: 11px;
             color: var(--text-muted);
@@ -438,6 +450,7 @@
             border-radius: 6px;
             padding: 6px 10px;
         }
+
 
         /* Light theme specific adjustments */
         [data-theme="light"] .message.user .message-content {
@@ -519,6 +532,10 @@
     <!-- Top Controls -->
     <div class="top-controls">
         <span class="sync-status" id="sync-status" title="Last sync time">Syncing...</span>
+        <button class="control-btn" id="export-btn" onclick="exportConversation()" title="Export conversation as TXT" disabled>
+            <span class="icon">📥</span>
+            <span>Export</span>
+        </button>
         <button class="control-btn" id="sync-btn" onclick="manualSync()" title="Sync data now">
             <span class="icon">🔄</span>
             <span>Sync</span>
@@ -670,6 +687,21 @@
         fetchSyncStatus();
         setInterval(fetchSyncStatus, 60000); // Update status every minute
 
+        // Export conversation as text file
+        function exportConversation() {
+            if (!currentProjectId || !currentSessionId) return;
+
+            const url = `/api/projects/${currentProjectId}/sessions/${currentSessionId}/export`;
+
+            // Create a temporary link and trigger download
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${currentSessionId}.txt`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
         // Format timestamp
         function formatTime(timestamp) {
             if (!timestamp) return '';
@@ -744,6 +776,9 @@
             currentProjectId = projectId;
             currentSessionId = null;
             renderProjects(projects);
+
+            // Disable export button when switching projects
+            document.getElementById('export-btn').disabled = true;
 
             const sessionsContainer = document.getElementById('sessions-list');
             sessionsContainer.innerHTML = `
@@ -898,6 +933,9 @@
                     ${messagesHtml}
                 </div>
             `;
+
+            // Enable export button
+            document.getElementById('export-btn').disabled = false;
         }
 
         // Search projects

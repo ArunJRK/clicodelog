@@ -25,6 +25,7 @@
 
 - **Three-panel layout** — Projects → Sessions → Conversation
 - **Auto-sync** — Backs up data from `~/.claude/projects/` every hour
+- **Export** — Download any conversation as a `.txt` file
 - **Theme support** — Light (soft blue) and Dark modes
 - **Rich display** — User/Assistant messages, thinking blocks, tool usage, tokens
 - **Search** — Find projects and conversations quickly
@@ -58,6 +59,14 @@ Open **http://localhost:5050** in your browser.
 1. **Startup** — Copies data from `~/.claude/projects/` to local `./data/` folder
 2. **Background sync** — Updates every hour automatically
 3. **Manual sync** — Click the sync button anytime
+
+## Controls
+
+| Button | Action |
+|--------|--------|
+| 📥 Export | Download current conversation as `.txt` |
+| 🔄 Sync | Manually refresh data from source |
+| ☀️/🌙 Theme | Toggle light/dark mode |
 
 ## Screenshots
 

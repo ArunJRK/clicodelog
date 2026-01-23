@@ -283,6 +283,84 @@ def api_search():
     return jsonify(results[:50])  # Limit results
 
 
+@app.route('/api/projects/<project_id>/sessions/<session_id>/export')
+def api_export(project_id, session_id):
+    """Export conversation as text file."""
+    conversation = get_conversation(project_id, session_id)
+
+    if "error" in conversation:
+        return jsonify(conversation), 404
+
+    # Build text content
+    lines = []
+    lines.append("=" * 60)
+    lines.append(f"Session: {session_id}")
+    lines.append(f"Project: {project_id.replace('-', '/').lstrip('/')}")
+    lines.append("=" * 60)
+    lines.append("")
+
+    # Add summaries if present
+    if conversation.get("summaries"):
+        lines.append("SUMMARIES:")
+        for s in conversation["summaries"]:
+            lines.append(f"  • {s}")
+        lines.append("")
+        lines.append("-" * 60)
+        lines.append("")
+
+    # Add messages
+    for msg in conversation.get("messages", []):
+        role = msg["role"].upper()
+        timestamp = msg.get("timestamp", "")
+
+        lines.append(f"[{role}] {timestamp}")
+        if msg.get("model"):
+            lines.append(f"Model: {msg['model']}")
+        lines.append("-" * 40)
+
+        # Content
+        if msg.get("content"):
+            lines.append(msg["content"])
+
+        # Thinking
+        if msg.get("thinking"):
+            lines.append("")
+            lines.append("--- THINKING ---")
+            lines.append(msg["thinking"])
+            lines.append("--- END THINKING ---")
+
+        # Tool uses
+        if msg.get("tool_uses"):
+            lines.append("")
+            for tool in msg["tool_uses"]:
+                lines.append(f"[TOOL: {tool['name']}]")
+                if isinstance(tool.get("input"), dict):
+                    for k, v in tool["input"].items():
+                        val = str(v)[:200] + "..." if len(str(v)) > 200 else str(v)
+                        lines.append(f"  {k}: {val}")
+                else:
+                    lines.append(f"  {tool.get('input', '')}")
+
+        # Usage stats
+        if msg.get("usage"):
+            usage = msg["usage"]
+            tokens = usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
+            lines.append(f"\n[Tokens: {tokens}]")
+
+        lines.append("")
+        lines.append("=" * 60)
+        lines.append("")
+
+    text_content = "\n".join(lines)
+
+    from flask import Response
+    return Response(
+        text_content,
+        mimetype="text/plain",
+        headers={"Content-Disposition": f"attachment; filename={session_id}.txt"}
+    )
+
+
 @app.route('/api/sync', methods=['POST'])
 def api_sync():
     """Manually trigger a data sync."""

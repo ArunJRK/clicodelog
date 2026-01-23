@@ -1,7 +1,7 @@
 """
-AI Conversation History Viewer
-A web app to browse and view Claude Code, OpenAI Codex, and Google Gemini conversation history.
-Data is copied from source directories to ~/.ai-history-viewer/data/ for backup and local use.
+cli code log
+A web app to browse, inspect, and export logs from CLI-based AI coding agents.
+Data is copied from source directories to ~/.clicodelog/data/ for backup and local use.
 Background sync runs every hour to keep data updated.
 """
 
@@ -21,7 +21,7 @@ from flask_cors import CORS
 PACKAGE_DIR = Path(__file__).parent
 
 # User data directory
-APP_DATA_DIR = Path.home() / ".ai-history-viewer"
+APP_DATA_DIR = Path.home() / ".clicodelog"
 DATA_DIR = APP_DATA_DIR / "data"
 
 # Sync interval in seconds (1 hour = 3600 seconds)
@@ -940,10 +940,10 @@ def api_status():
 
 def run_server(host="127.0.0.1", port=5050, skip_sync=False, debug=False):
     """Run the Flask server."""
-    from ai_history_viewer import __version__
+    from clicodelog import __version__
 
     print("=" * 60)
-    print(f"AI History Viewer v{__version__}")
+    print(f"cli code log v{__version__}")
     print("=" * 60)
 
     if not skip_sync:

@@ -26,7 +26,7 @@ CLI-based AI coding agents — Claude Code, OpenAI Codex, and Gemini CLI.
 </p>
 </div>
 
-<div align="center">
+<!-- <div align="center">
 <table>
 <tr>
 <td align="center">
@@ -43,7 +43,7 @@ CLI-based AI coding agents — Claude Code, OpenAI Codex, and Gemini CLI.
 </td>
 </tr>
 </table>
-</div>
+</div> -->
 
 ---
 

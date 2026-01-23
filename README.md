@@ -1,6 +1,9 @@
 <div align="center">
-<h1>AI History Viewer</h1>
-<p>A lightweight web app to browse and view your Claude Code, OpenAI Codex, and Google Gemini conversation history</p>
+<h1>cli code log</h1>
+<p>
+A lightweight, local-first web app to browse, inspect, and export logs from
+CLI-based AI coding agents — Claude Code, OpenAI Codex, and Gemini CLI.
+</p>
 
 <p>
   <a href="#features">Features</a> •
@@ -24,13 +27,15 @@
 
 ## Features
 
-- **Multi-source support** — View history from Claude Code and OpenAI Codex
+- **Multi-source support** — View logs from Claude Code, OpenAI Codex, and Gemini CLI
 - **Three-panel layout** — Projects → Sessions → Conversation
 - **Auto-sync** — Backs up data from source directories every hour
-- **Export** — Download any conversation as a `.txt` file
+- **Export** — Download any session as a `.txt` file
 - **Theme support** — Light (soft blue) and Dark modes
-- **Rich display** — User/Assistant messages, thinking blocks, tool usage, tokens
-- **Search** — Find projects and conversations quickly
+- **Rich display** — User/assistant messages, thinking blocks, tool usage, token stats
+- **Search** — Quickly find projects and sessions
+
+---
 
 ## Supported Tools
 
@@ -38,35 +43,42 @@
 |------|------------------|--------|
 | **Claude Code** | `~/.claude/projects/` | ✅ Supported |
 | **OpenAI Codex** | `~/.codex/sessions/` | ✅ Supported |
-| **Google Gemini** | `~/.gemini/tmp/` | ✅ Supported |
+| **Gemini CLI** | `~/.gemini/tmp/` | ✅ Supported |
 
 ### Claude Code
+
 - Sessions organized by project directory
-- Displays summaries, messages, thinking blocks, and tool uses
-- Shows model info and token usage
+- Displays summaries, messages, thinking blocks, and tool usage
+- Shows model metadata and token usage
 
 ### OpenAI Codex
-- Sessions organized by date (`YYYY/MM/DD/`)
-- Groups sessions by working directory (cwd) as "projects"
-- Displays messages, function calls, and reasoning blocks
-- Filters out system prompts for cleaner viewing
 
-### Google Gemini
+- Sessions organized by date (`YYYY/MM/DD/`)
+- Groups sessions by working directory (cwd) as projects
+- Displays messages, function calls, and reasoning blocks
+- Filters out system prompts for cleaner inspection
+
+### Gemini CLI
+
 - Sessions stored as JSON files in `{hash}/chats/session-*.json`
 - Groups sessions by project hash
 - Displays messages, thoughts (thinking), and tool calls
-- Shows model info and token usage (input, output, cached)
+- Shows token usage (input, output, cached)
+
+---
 
 ## Installation
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/ai-history-viewer.git
-cd ai-history-viewer
+git clone https://github.com/YOUR_USERNAME/cli-code-log.git
+cd cli-code-log
 ```
+
+---
 
 ## Usage
 
-**One command to run:**
+One command to run:
 
 ```bash
 ./run.sh
@@ -79,16 +91,20 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open **http://localhost:5050** in your browser.
+Open http://localhost:5050 in your browser.
+
+---
 
 ## How It Works
 
-1. **Startup** — Syncs data from both source directories to local `./data/` folder
-2. **Background sync** — Updates every hour automatically
-3. **Manual sync** — Click the sync button to refresh current source
-4. **Source switching** — Use the dropdown to switch between Claude Code and Codex
+- **Startup sync** — Copies logs from source directories into local `./data/`
+- **Background sync** — Automatically refreshes every hour
+- **Manual sync** — Trigger a sync for the active source via UI
+- **Source switching** — Switch between Claude Code, Codex, and Gemini CLI
 
-### Data Storage
+---
+
+## Data Storage
 
 ```
 data/
@@ -103,7 +119,7 @@ data/
 │           ├── 16/
 │           │   └── rollout-xxx.jsonl
 │           └── 17/
-└── gemini/               # Google Gemini backup
+└── gemini/               # Gemini CLI backup
     ├── {project-hash-1}/
     │   └── chats/
     │       ├── session-2026-01-17T12-57-xxx.json
@@ -111,47 +127,57 @@ data/
     └── {project-hash-2}/
 ```
 
+---
+
 ## Controls
 
 | Control | Action |
 |---------|--------|
-| **Source** dropdown | Switch between Claude Code, Codex, and Gemini |
-| 📥 Export | Download current conversation as `.txt` |
-| 🔄 Sync | Manually refresh data from current source |
-| ☀️/🌙 Theme | Toggle light/dark mode |
+| Source dropdown | Switch between supported tools |
+| 📥 Export | Download current session as .txt |
+| 🔄 Sync | Manually refresh logs from source |
+| ☀️ / 🌙 Theme | Toggle light/dark mode |
+
+---
 
 ## Screenshots
 
 | Light Mode | Dark Mode |
 |------------|-----------|
-| ![Light](screenshots/light.png) | ![Dark](screenshots/dark.png) |
+| ![Light Mode](screenshots/light.png) | ![Dark Mode](screenshots/dark.png) |
+
+---
 
 ## Project Structure
 
 ```
-ai-history-viewer/
+cli-code-log/
 ├── app.py              # Flask backend (multi-source support)
 ├── run.sh              # Run script
 ├── requirements.txt    # Dependencies
-├── data/               # Synced data (auto-created)
-│   ├── claude-code/    # Claude Code backup
-│   ├── codex/          # OpenAI Codex backup
-│   └── gemini/         # Google Gemini backup
+├── data/               # Synced logs (auto-created)
+│   ├── claude-code/
+│   ├── codex/
+│   └── gemini/
 └── templates/
     └── index.html      # Frontend
 ```
+
+---
 
 ## API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/sources` | GET | List available sources |
-| `/api/sources/<id>` | POST | Set current source |
-| `/api/projects?source=` | GET | List projects for source |
-| `/api/projects/<id>/sessions?source=` | GET | List sessions in project |
-| `/api/projects/<id>/sessions/<id>?source=` | GET | Get conversation |
-| `/api/sync?source=` | POST | Trigger manual sync |
-| `/api/status?source=` | GET | Get sync status |
+| `/api/sources/<id>` | POST | Set active source |
+| `/api/projects?source=` | GET | List projects |
+| `/api/projects/<id>/sessions?source=` | GET | List sessions |
+| `/api/projects/<id>/sessions/<id>?source=` | GET | Fetch session |
+| `/api/sync?source=` | POST | Trigger sync |
+| `/api/status?source=` | GET | Sync status |
+
+---
 
 ## Requirements
 
@@ -159,9 +185,11 @@ ai-history-viewer/
 - Flask 2.0+
 - flask-cors
 
+---
+
 ## Adding New Sources
 
-To add support for another AI coding tool, update `app.py`:
+To add support for another CLI-based AI tool, update `app.py`:
 
 ```python
 SOURCES = {
@@ -176,20 +204,17 @@ SOURCES = {
         "data_subdir": "codex"
     },
     "gemini": {
-        "name": "Google Gemini",
+        "name": "Gemini CLI",
         "source_dir": Path.home() / ".gemini" / "tmp",
         "data_subdir": "gemini"
     },
-    # Add new source here:
-    "new-tool": {
-        "name": "New Tool",
-        "source_dir": Path.home() / ".newtool" / "history",
-        "data_subdir": "new-tool"
-    }
+    # Add new tool here
 }
 ```
 
-Then implement the parsing functions for the new tool's format.
+Then implement the corresponding parser for its log format.
+
+---
 
 ## License
 
@@ -198,5 +223,5 @@ MIT
 ---
 
 <div align="center">
-<sub>Built for browsing AI coding assistant conversations</sub>
+<sub>Built for inspecting what AI coding agents actually did.</sub>
 </div>

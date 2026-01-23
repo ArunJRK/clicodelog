@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Claude Conversation History</title>
+    <title>AI Conversation History</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -526,11 +526,69 @@
         [data-theme="light"] .summary-tag {
             background: var(--accent-green);
         }
+
+        /* Source Selector Styles */
+        .source-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 6px 12px;
+            box-shadow: 0 2px 8px var(--shadow-color);
+        }
+
+        .source-selector label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .source-selector select {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 4px 8px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            min-width: 140px;
+        }
+
+        .source-selector select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .source-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+        }
+
+        .source-indicator.unavailable {
+            background: var(--text-muted);
+        }
+
+        [data-theme="light"] .source-selector select {
+            background: var(--bg-secondary);
+        }
     </style>
 </head>
 <body>
     <!-- Top Controls -->
     <div class="top-controls">
+        <div class="source-selector">
+            <label>Source:</label>
+            <select id="source-select" onchange="changeSource(this.value)">
+                <option value="claude-code">Claude Code</option>
+                <option value="codex">OpenAI Codex</option>
+                <option value="gemini">Google Gemini</option>
+            </select>
+        </div>
         <span class="sync-status" id="sync-status" title="Last sync time">Syncing...</span>
         <button class="control-btn" id="export-btn" onclick="exportConversation()" title="Export conversation as TXT" disabled>
             <span class="icon">📥</span>
@@ -581,7 +639,7 @@
             <div id="conversation-content">
                 <div class="empty-state">
                     <div class="empty-state-icon">💬</div>
-                    <h3>Claude Conversation History</h3>
+                    <h3>AI Conversation History</h3>
                     <p>Select a session to view the conversation</p>
                 </div>
             </div>
@@ -591,7 +649,9 @@
     <script>
         let currentProjectId = null;
         let currentSessionId = null;
+        let currentSource = 'claude-code';
         let projects = [];
+        let availableSources = [];
 
         // Theme Management
         function getPreferredTheme() {
@@ -631,10 +691,59 @@
             setTheme(theme);
         })();
 
+        // Source Management
+        async function loadSources() {
+            try {
+                const response = await fetch('/api/sources');
+                const data = await response.json();
+                availableSources = data.sources;
+                currentSource = data.current;
+
+                const select = document.getElementById('source-select');
+                select.innerHTML = availableSources.map(source => `
+                    <option value="${source.id}" ${source.id === currentSource ? 'selected' : ''} ${!source.available ? 'disabled' : ''}>
+                        ${source.name}${!source.available ? ' (not found)' : ''}
+                    </option>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading sources:', error);
+            }
+        }
+
+        async function changeSource(sourceId) {
+            if (sourceId === currentSource) return;
+
+            currentSource = sourceId;
+            currentProjectId = null;
+            currentSessionId = null;
+
+            // Update UI
+            document.getElementById('export-btn').disabled = true;
+
+            // Reset panels
+            document.getElementById('sessions-list').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📁</div>
+                    <p>Select a project to view sessions</p>
+                </div>
+            `;
+            document.getElementById('conversation-content').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">💬</div>
+                    <h3>AI Conversation History</h3>
+                    <p>Select a session to view the conversation</p>
+                </div>
+            `;
+
+            // Load projects for new source
+            await loadProjects();
+            await fetchSyncStatus();
+        }
+
         // Sync Management
         async function fetchSyncStatus() {
             try {
-                const response = await fetch('/api/status');
+                const response = await fetch(`/api/status?source=${currentSource}`);
                 const data = await response.json();
                 updateSyncStatus(data.last_sync);
             } catch (error) {
@@ -664,7 +773,7 @@
             statusEl.textContent = 'Syncing...';
 
             try {
-                const response = await fetch('/api/sync', { method: 'POST' });
+                const response = await fetch(`/api/sync?source=${currentSource}`, { method: 'POST' });
                 const data = await response.json();
 
                 if (data.status === 'success') {
@@ -691,7 +800,7 @@
         function exportConversation() {
             if (!currentProjectId || !currentSessionId) return;
 
-            const url = `/api/projects/${currentProjectId}/sessions/${currentSessionId}/export`;
+            const url = `/api/projects/${currentProjectId}/sessions/${currentSessionId}/export?source=${currentSource}`;
 
             // Create a temporary link and trigger download
             const link = document.createElement('a');
@@ -737,7 +846,7 @@
         // Load projects
         async function loadProjects() {
             try {
-                const response = await fetch('/api/projects');
+                const response = await fetch(`/api/projects?source=${currentSource}`);
                 projects = await response.json();
                 renderProjects(projects);
             } catch (error) {
@@ -789,7 +898,7 @@
             `;
 
             try {
-                const response = await fetch(`/api/projects/${projectId}/sessions`);
+                const response = await fetch(`/api/projects/${projectId}/sessions?source=${currentSource}`);
                 const sessions = await response.json();
                 renderSessions(sessions);
             } catch (error) {
@@ -830,7 +939,7 @@
         async function selectSession(sessionId) {
             currentSessionId = sessionId;
             // Re-render sessions to update active state
-            const sessionsResponse = await fetch(`/api/projects/${currentProjectId}/sessions`);
+            const sessionsResponse = await fetch(`/api/projects/${currentProjectId}/sessions?source=${currentSource}`);
             const sessions = await sessionsResponse.json();
             renderSessions(sessions);
 
@@ -843,7 +952,7 @@
             `;
 
             try {
-                const response = await fetch(`/api/projects/${currentProjectId}/sessions/${sessionId}`);
+                const response = await fetch(`/api/projects/${currentProjectId}/sessions/${sessionId}?source=${currentSource}`);
                 const conversation = await response.json();
                 renderConversation(conversation);
             } catch (error) {
@@ -948,7 +1057,11 @@
         });
 
         // Initialize
-        loadProjects();
+        async function init() {
+            await loadSources();
+            await loadProjects();
+        }
+        init();
     </script>
 </body>
 </html>

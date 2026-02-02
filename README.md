@@ -3,10 +3,24 @@
 <img width="220px" src="https://raw.githubusercontent.com/monk1337/clicodelog/refs/heads/main/screenshots/logo.png">
 </div>
 
+# CLI Code Log
+
 <p>
 A lightweight, local-first web app to browse, inspect, and export logs from
 CLI-based AI coding agents — Claude Code, OpenAI Codex, and Gemini CLI.
 </p>
+
+## Quick Start
+
+```bash
+# Install with uv (recommended - creates isolated environment)
+uv tool install clicodelog
+
+# Run
+clicodelog
+```
+
+Open **http://localhost:6126** in your browser.
 
 <p>
   <a href="#features">Features</a> •
@@ -49,7 +63,7 @@ CLI-based AI coding agents — Claude Code, OpenAI Codex, and Gemini CLI.
 
 ## Installation
 
-### Via uv (Recommended)
+### Via uv tool (Recommended)
 
 [uv](https://github.com/astral-sh/uv) is a fast Python package installer. Install it first if you haven't:
 
@@ -57,10 +71,18 @@ CLI-based AI coding agents — Claude Code, OpenAI Codex, and Gemini CLI.
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-Then install clicodelog:
+Then install clicodelog as an isolated CLI tool:
 
 ```bash
-uv pip install clicodelog
+uv tool install clicodelog
+```
+
+This creates an isolated environment and makes the `clicodelog` command available globally.
+
+### Via pipx (Alternative)
+
+```bash
+pipx install clicodelog
 ```
 
 ### Via pip
@@ -74,7 +96,9 @@ pip install clicodelog
 ```bash
 git clone https://github.com/monk1337/clicodelog.git
 cd clicodelog
-uv pip install -e .
+uv tool install -e .
+# or with pipx:
+pipx install -e .
 # or with pip:
 pip install -e .
 ```
@@ -102,6 +126,32 @@ clicodelog --port 8080          # Use custom port
 clicodelog --host 0.0.0.0       # Bind to all interfaces
 clicodelog --no-sync            # Skip initial data sync
 clicodelog --debug              # Run in debug mode
+```
+
+### Upgrade
+
+```bash
+# With uv tool
+uv tool upgrade clicodelog
+
+# With pipx
+pipx upgrade clicodelog
+
+# With pip
+pip install --upgrade clicodelog
+```
+
+### Uninstall
+
+```bash
+# With uv tool
+uv tool uninstall clicodelog
+
+# With pipx
+pipx uninstall clicodelog
+
+# With pip
+pip uninstall clicodelog
 ```
 
 ### Alternative: Run from source

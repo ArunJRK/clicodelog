@@ -13,6 +13,7 @@ import signal
 import subprocess
 import threading
 import time
+import webbrowser
 from datetime import datetime
 from pathlib import Path
 from flask import Flask, render_template, jsonify, request
@@ -950,32 +951,51 @@ def api_status():
     })
 
 
-def kill_process_on_port(port):
+def kill_process_on_port(port, max_retries=3):
     """Kill any process running on the specified port."""
-    try:
-        # Find process ID on the port
-        result = subprocess.run(
-            ["lsof", "-ti", f":{port}"],
-            capture_output=True,
-            text=True
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            pid = result.stdout.strip()
-            print(f"⚠️  Port {port} is in use by process {pid}")
-            print(f"🔄 Killing process {pid}...")
-            try:
-                os.kill(int(pid), signal.SIGTERM)
-                time.sleep(0.5)  # Give it a moment to terminate
-                print(f"✓ Process killed successfully")
-            except ProcessLookupError:
-                pass  # Process already gone
-            except Exception as e:
-                print(f"Warning: Could not kill process: {e}")
-    except FileNotFoundError:
-        # lsof not available (not on Unix-like system)
-        pass
-    except Exception as e:
-        print(f"Warning: Could not check port: {e}")
+    for attempt in range(max_retries):
+        try:
+            # Find process ID on the port
+            result = subprocess.run(
+                ["lsof", "-ti", f":{port}"],
+                capture_output=True,
+                text=True
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                pids = result.stdout.strip().split('\n')
+                for pid in pids:
+                    print(f"⚠️  Port {port} is in use by process {pid}")
+                    print(f"🔄 Killing process {pid}...")
+                    try:
+                        os.kill(int(pid), signal.SIGKILL)  # Use SIGKILL for immediate termination
+                    except ProcessLookupError:
+                        pass  # Process already gone
+                    except Exception as e:
+                        print(f"Warning: Could not kill process: {e}")
+                
+                # Wait longer and verify
+                time.sleep(1.5)
+                
+                # Check if port is now free
+                check = subprocess.run(
+                    ["lsof", "-ti", f":{port}"],
+                    capture_output=True,
+                    text=True
+                )
+                if check.returncode != 0 or not check.stdout.strip():
+                    print(f"✓ Port {port} is now free")
+                    return True
+            else:
+                return True  # Port is already free
+        except FileNotFoundError:
+            # lsof not available (not on Unix-like system)
+            return True
+        except Exception as e:
+            print(f"Warning: Could not check port: {e}")
+            return False
+    
+    print(f"❌ Failed to free port {port} after {max_retries} attempts")
+    return False
 
 
 def run_server(host="127.0.0.1", port=6126, skip_sync=False, debug=False):
@@ -985,7 +1005,10 @@ def run_server(host="127.0.0.1", port=6126, skip_sync=False, debug=False):
     print("=" * 60)
     
     # Kill any process on the port
-    kill_process_on_port(port)
+    if not kill_process_on_port(port):
+        print(f"\n❌ Could not free port {port}. Please manually stop the process or use a different port.")
+        print(f"   Try: lsof -ti:{port} | xargs kill -9")
+        return
 
     if not skip_sync:
         # Sync data from all sources
@@ -1008,9 +1031,22 @@ def run_server(host="127.0.0.1", port=6126, skip_sync=False, debug=False):
     sync_thread.start()
     print("Background sync thread started.")
 
+    url = f"http://{host}:{port}"
     print(f"\nStarting server...")
-    print(f"Open http://{host}:{port} in your browser")
+    print(f"🌐 Opening {url} in your browser...")
     print("=" * 60)
+    
+    # Open browser after a short delay
+    def open_browser():
+        time.sleep(1.5)
+        try:
+            webbrowser.open(url)
+        except Exception as e:
+            print(f"Could not open browser automatically: {e}")
+    
+    browser_thread = threading.Thread(target=open_browser, daemon=True)
+    browser_thread.start()
+    
     app.run(host=host, port=port, debug=debug, use_reloader=False)
 
 

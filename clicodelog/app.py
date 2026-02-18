@@ -98,7 +98,7 @@ def sync_data(source_id=None, silent=False):
         # Count what was copied
         if source_id == "claude-code":
             project_count = sum(1 for p in dest_dir.iterdir() if p.is_dir())
-            session_count = sum(1 for p in dest_dir.iterdir() if p.is_dir() for _ in p.glob("*.jsonl"))
+            session_count = sum(1 for p in dest_dir.iterdir() if p.is_dir() for _ in p.rglob("*.jsonl"))
         elif source_id == "codex":
             session_files = list(dest_dir.rglob("*.jsonl"))
             session_count = len(session_files)
@@ -195,7 +195,7 @@ def get_projects(source_id=None):
             if project_dir.is_dir():
                 # Convert directory name back to readable path
                 readable_name = project_dir.name.replace("-", "/").lstrip("/")
-                sessions = list(project_dir.glob("*.jsonl"))
+                sessions = list(project_dir.rglob("*.jsonl"))
                 projects.append({
                     "id": project_dir.name,
                     "name": readable_name,
@@ -261,7 +261,7 @@ def get_sessions(project_id, source_id=None):
         project_dir = data_dir / project_id
         if not project_dir.exists():
             return []
-        session_files = sorted(project_dir.glob("*.jsonl"), key=lambda x: x.stat().st_mtime, reverse=True)
+        session_files = sorted(project_dir.rglob("*.jsonl"), key=lambda x: x.stat().st_mtime, reverse=True)
     elif source_id == "codex":
         # Decode the project_id to get the actual cwd
         try:
@@ -401,7 +401,15 @@ def get_conversation(project_id, session_id, source_id=None):
     data_dir = DATA_DIR / SOURCES[source_id]["data_subdir"]
 
     if source_id == "claude-code":
-        session_file = data_dir / project_id / f"{session_id}.jsonl"
+        project_dir = data_dir / project_id
+        # Search recursively for the session file
+        session_file = None
+        for f in project_dir.rglob("*.jsonl"):
+            if f.stem == session_id:
+                session_file = f
+                break
+        if not session_file:
+            return {"error": "Session not found"}
     elif source_id == "codex":
         # Decode the project_id to get the actual cwd
         try:
@@ -812,7 +820,7 @@ async def api_search(q: Optional[str] = None, source: Optional[str] = None):
             if not project_dir.is_dir():
                 continue
 
-            for session_file in project_dir.glob("*.jsonl"):
+            for session_file in project_dir.rglob("*.jsonl"):
                 try:
                     with open(session_file, 'r') as f:
                         content = f.read().lower()
